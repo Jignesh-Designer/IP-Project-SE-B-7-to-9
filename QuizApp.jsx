@@ -1,42 +1,26 @@
-import React, { useState, useEffect } from 'react';
-import questions from './questions';
-import './App.css'; // use your existing CSS here
+import React, { useState, useEffect } from "react";
+import questions from "./questions.js";
+import "./App.css";
 
-function QuizApp() {
+const QuizApp = () => {
+  const [currentQuestion, setCurrentQuestion] = useState(0);
+  const [selected, setSelected] = useState(null);
+  const [score, setScore] = useState(0);
   const [start, setStart] = useState(false);
   const [showResult, setShowResult] = useState(false);
-  const [questionIndex, setQuestionIndex] = useState(0);
-  const [score, setScore] = useState(0);
-  const [selected, setSelected] = useState(null);
   const [timer, setTimer] = useState(15);
 
-  useEffect(() => {
-    let timerId;
-    if (start && !showResult && timer > 0) {
-      timerId = setTimeout(() => setTimer(prev => prev - 1), 1000);
-    } else if (timer === 0) {
-      setSelected("timeout");
-    }
-    return () => clearTimeout(timerId);
-  }, [timer, start, showResult]);
-
-  const currentQ = questions[questionIndex];
-
-  const handleStart = () => {
-    setStart(true);
-  };
-
-  const handleOptionClick = (option) => {
-    if (selected !== null) return;
+  const handleAnswerClick = (option) => {
+    if (selected) return;
     setSelected(option);
-    if (option === currentQ.answer) {
+    if (option === questions[currentQuestion].answer) {
       setScore(score + 1);
     }
   };
 
   const handleNext = () => {
-    if (questionIndex < questions.length - 1) {
-      setQuestionIndex(questionIndex + 1);
+    if (currentQuestion + 1 < questions.length) {
+      setCurrentQuestion(currentQuestion + 1);
       setSelected(null);
       setTimer(15);
     } else {
@@ -44,73 +28,70 @@ function QuizApp() {
     }
   };
 
-  const handleRestart = () => {
-    setScore(0);
-    setQuestionIndex(0);
-    setSelected(null);
-    setTimer(15);
-    setShowResult(false);
-    setStart(false);
+  useEffect(() => {
+    let timerId;
+    if (start && !showResult && timer > 0) {
+      timerId = setTimeout(() => setTimer((prev) => prev - 1), 1000);
+    } else if (timer === 0 && selected === null) {
+      setSelected("timeout");
+      timerId = setTimeout(() => {
+        handleNext();
+      }, 2000);
+    }
+    return () => clearTimeout(timerId);
+  }, [timer, start, showResult, selected]);
+
+  const getOptionClass = (option) => {
+    if (selected === null) return "option";
+    if (selected === "timeout") return "option disabled";
+    if (option === questions[currentQuestion].answer) return "option correct";
+    if (option === selected) return "option wrong";
+    return "option disabled";
   };
 
-  if (!start) {
-    return <div className="start_btn"><button onClick={handleStart}>Start Quiz</button></div>;
-  }
-
-  if (showResult) {
-    return (
-      <div className="result_box activeResult">
-        <div className="icon"><i className="fa-solid fa-crown"></i></div>
-        <div className="complete_text"> You have completed the quiz!</div>
-        <div className="score_text">
-          <span>You got <p>{score}</p> out of <p>{questions.length}</p></span>
-        </div>
-        <div className="buttons">
-          <button className="restart" onClick={handleRestart}>Replay</button>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="quiz_box activeQuiz">
-      <header>
-        <div className="title">Quiz Application</div>
-        <div className="timer">
-          <div className="time_text">Time left</div>
-          <div className="timer_sec">{timer}</div>
-        </div>
-      </header>
-      <section>
-        <div className="que_text"><span>{currentQ.numb}. {currentQ.question}</span></div>
-        <div className="option_list">
-          {currentQ.options.map((opt, idx) => (
-            <div
-              key={idx}
-              className={`option ${
-                selected === opt
-                  ? opt === currentQ.answer
-                    ? "correct"
-                    : "incorrect"
-                  : selected && opt === currentQ.answer
-                  ? "correct"
-                  : ""
-              } ${selected ? "disabled" : ""}`}
-              onClick={() => handleOptionClick(opt)}
-            >
-              <span>{opt}</span>
+    <div className="app-wrapper">
+      <div className="container">
+        {!start ? (
+          <div className="start-screen">
+            <h1>Quiz Application</h1>
+            <button onClick={() => setStart(true)}>Start Quiz</button>
+          </div>
+        ) : showResult ? (
+          <div className="result-screen">
+            <h2>Quiz Completed!</h2>
+            <p>Your Score: {score} / {questions.length}</p>
+          </div>
+        ) : (
+          <div className="quiz-screen">
+            <div className="header">
+              <h2>Quiz Application</h2>
+              <div className="timer">Time left <span>{timer}</span></div>
             </div>
-          ))}
-        </div>
-      </section>
-      <footer>
-        <div className="total_que">
-          <span><p>{questionIndex + 1}</p> of <p>{questions.length}</p> questions</span>
-        </div>
-        <div className="next_btn" onClick={handleNext}>Next</div>
-      </footer>
+            <h3>{currentQuestion + 1}. {questions[currentQuestion].question}</h3>
+            <div className="options">
+              {questions[currentQuestion].options.map((option, idx) => (
+                <div
+                  key={idx}
+                  className={getOptionClass(option)}
+                  onClick={() => handleAnswerClick(option)}
+                >
+                  {option}
+                </div>
+              ))}
+            </div>
+            <div className="footer">
+              <p>{currentQuestion + 1} of {questions.length} questions</p>
+              {selected !== null && (
+                <button className="next-btn" onClick={handleNext}>Next</button>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
-}
+};
 
 export default QuizApp;
+
